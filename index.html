@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpardirektSteuer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --g: #00FF88;
+  --g2: #00cc6a;
+  --g3: #00ff8822;
+  --bg: #080810;
+  --bg2: #0d0d1a;
+  --card: rgba(255,255,255,0.04);
+  --card2: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #f0f0f8;
+  --sub: rgba(255,255,255,0.45);
+  --red: #ff4466;
+  --red2: rgba(255,68,102,0.15);
+  --amber: #ffbb00;
+  --blue: #4488ff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 90px;
+  overflow-x: hidden;
+}
+
+/* Ambient glow bg */
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px; left: -200px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,255,136,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  bottom: -100px; right: -100px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(68,136,255,0.05) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* HEADER */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,8,16,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--g), #00aaff);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; color: #000;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(0,255,136,0.3);
+}
+
+.header-text { flex: 1; }
+.header-text h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
+.header-text p { font-size: 11px; color: var(--sub); margin-top: 1px; }
+
+.gear-btn {
+  width: 36px; height: 36px;
+  background: var(--card2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+.gear-btn:active { background: var(--card); }
+
+/* MONTH STRIP */
+.month-strip {
+  padding: 14px 20px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+  z-index: 1;
+}
+.month-strip::-webkit-scrollbar { display: none; }
+
+.m-btn {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--sub);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+.m-btn.active {
+  background: var(--g);
+  color: #000;
+  border-color: var(--g);
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(0,255,136,0.35);
+}
+
+/* HERO CARD */
+.hero {
+  margin: 4px 16px 16px;
+  background: linear-gradient(135deg, rgba(0,255,136,0.08) 0%, rgba(68,136,255,0.06) 100%);
+  border: 1px solid rgba(0,255,136,0.15);
+  border-radius: 20px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle, rgba(0,255,136,0.12), transparent 70%);
+  pointer-events: none;
+}
+
+.hero-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--g);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.hero-amount {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.hero-amount.negative { color: var(--red); }
+.hero-amount.positive { color: var(--g); }
+
+.hero-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.hero-stat {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.hero-stat-label { font-size: 10px; color: var(--sub); font-weight: 500; margin-bottom: 3px; }
+.hero-stat-val { font-size: 16px; font-weight: 700; }
+.hero-stat-val.inc { color: var(--g); }
+.hero-stat-val.exp { color: var(--red); }
+
+/* SECTIONS */
+.section { padding: 0 16px; margin-bottom: 20px; position: relative; z-index: 1; }
+
+.sec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sec-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.add-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 7px 14px;
+  background: var(--g3);
+  border: 1px solid rgba(0,255,136,0.25);
+  border-radius: 100px;
+  color: var(--g);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+.add-btn:active { background: rgba(0,255,136,0.15); }
+
+/* ENTRY CARDS */
+.entries { display: flex; flex-direction: column; gap: 8px; }
+
+.entry {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.entry::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+}
+.entry.income::before { background: var(--g); }
+.entry.expense::before { background: var(--red); }
+
+.entry-ico {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+.entry.income .entry-ico { background: rgba(0,255,136,0.1); }
+.entry.expense .entry-ico { background: var(--red2); }
+
+.entry-body { flex: 1; min-width: 0; }
+.entry-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.entry-sub {
+  font-size: 11px;
+  color: var(--sub);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cat-pill {
+  background: rgba(255,255,255,0.06);
+  border-radius: 100px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.entry-right { text-align: right; flex-shrink: 0; }
+.entry-amt {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.entry.income .entry-amt { color: var(--g); }
+.entry.expense .entry-amt { color: var(--red); }
+
+.del-btn {
+  background: none; border: none;
+  color: rgba(255,255,255,0.2);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.del-btn:active { color: var(--red); }
+.edit-btn {
+  background: none; border: none;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 2px 4px;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+  line-height: 1;
+}
+.edit-btn:active { opacity: 1; }
+
+.empty {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--sub);
+}
+.empty-ico { font-size: 32px; margin-bottom: 8px; opacity: 0.5; }
+.empty-txt { font-size: 13px; }
+
+/* FILTER BAR */
+.filter-bar {
+  padding: 0 16px 12px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.f-btn {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--sub);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.f-btn.active {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--border2);
+  color: var(--text);
+  font-weight: 600;
+}
+
+
+/* BOTTOM BAR */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(8,8,16,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+  z-index: 100;
+}
+
+.bar-btn {
+  flex: 1;
+  padding: 13px;
+  border-radius: 14px;
+  border: 1px solid var(--border2);
+  background: var(--card2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+.bar-btn:active { background: var(--card); }
+.bar-btn.primary {
+  background: linear-gradient(135deg, var(--g), #00ddff);
+  color: #000;
+  border-color: transparent;
+  box-shadow: 0 4px 20px rgba(0,255,136,0.25);
+}
+
+/* MODAL */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 200;
+  align-items: flex-end;
+  justify-content: center;
+}
+.overlay.open { display: flex; }
+
+.sheet {
+  background: #0f0f1e;
+  border: 1px solid var(--border2);
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px calc(32px + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 600px;
+  max-height: 92vh;
+  overflow-y: auto;
+  animation: up 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.drag-bar {
+  width: 40px; height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+
+.sheet-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 18px;
+}
+
+/* TYPE SWITCH */
+.type-sw {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 5px;
+}
+.type-sw button {
+  padding: 11px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--sub);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+.type-sw button.on-inc {
+  background: rgba(0,255,136,0.12);
+  color: var(--g);
+  box-shadow: inset 0 0 0 1px rgba(0,255,136,0.3);
+}
+.type-sw button.on-exp {
+  background: var(--red2);
+  color: var(--red);
+  box-shadow: inset 0 0 0 1px rgba(255,68,102,0.3);
+}
+
+/* PHOTO BTNS */
+.photo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.photo-tile {
+  background: var(--card);
+  border: 1.5px dashed var(--border2);
+  border-radius: 14px;
+  padding: 18px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.photo-tile:active { border-color: var(--g); background: var(--g3); }
+.photo-tile .ico { font-size: 22px; margin-bottom: 6px; }
+.photo-tile .lbl { font-size: 12px; color: var(--sub); font-weight: 500; }
+
+/* AI RESULT */
+.ai-box {
+  background: rgba(0,255,136,0.06);
+  border: 1px solid rgba(0,255,136,0.2);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--g);
+  margin-bottom: 14px;
+  display: none;
+}
+.ai-box.show { display: block; }
+
+/* PREVIEW IMG */
+.prev-img {
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  display: none;
+}
+.prev-img.show { display: block; }
+
+/* FIELDS */
+.field { margin-bottom: 12px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 7px;
+}
+.field input, .field select {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 13px 14px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus {
+  border-color: rgba(0,255,136,0.4);
+  box-shadow: 0 0 0 3px rgba(0,255,136,0.08);
+}
+.field select option { background: #0f0f1e; }
+
+.key-wrap { position: relative; }
+.key-wrap input { padding-right: 48px; }
+.eye {
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--sub); cursor: pointer; font-size: 18px;
+}
+
+/* SAVE BTN */
+.save-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--g), #00ddff);
+  color: #000;
+  border: none;
+  border-radius: 14px;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  margin-top: 8px;
+  box-shadow: 0 4px 20px rgba(0,255,136,0.25);
+  transition: opacity 0.2s;
+}
+.save-btn:active { opacity: 0.85; }
+
+.cancel-btn {
+  width: 100%; background: none; border: none;
+  color: var(--sub); font-size: 14px;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  padding: 12px; margin-top: 2px;
+}
+
+/* DOTS LOADER */
+.dots { display: inline-flex; gap: 4px; align-items: center; }
+.dots span {
+  width: 5px; height: 5px;
+  background: var(--g); border-radius: 50%;
+  animation: dot 1.2s infinite;
+}
+.dots span:nth-child(2) { animation-delay: 0.2s; }
+.dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot {
+  0%,80%,100% { opacity: 0.2; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 100px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15,15,30,0.95);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 10px 20px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 999;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+/* SETTINGS NOTE */
+.settings-note {
+  font-size: 12px;
+  color: var(--sub);
+  line-height: 1.6;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.settings-note span { color: var(--g); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SD</div>
+  <div class="header-text">
+    <h1>SpardirektSteuer</h1>
+    <p>EÜR · Kleinunternehmer §19 UStG</p>
+  </div>
+  <div class="gear-btn" onclick="openSettings()">⚙️</div>
+</header>
+
+<div class="month-strip" id="monthStrip"></div>
+
+<div style="padding: 0 16px 4px; position:relative; z-index:1;">
+  <div class="hero">
+    <div class="hero-label">Gewinn / Verlust</div>
+    <div class="hero-amount" id="heroProfit">0,00 €</div>
+    <div class="hero-row">
+      <div class="hero-stat">
+        <div class="hero-stat-label">📈 Einnahmen</div>
+        <div class="hero-stat-val inc" id="heroInc">0,00 €</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-label">📉 Ausgaben</div>
+        <div class="hero-stat-val exp" id="heroExp">0,00 €</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="filter-bar" id="filterBar"></div>
+
+<div class="section">
+  <div class="sec-header">
+    <span class="sec-label">Einnahmen</span>
+    <button class="add-btn" onclick="openModal('income')">＋ Hinzufügen</button>
+  </div>
+  <div class="entries" id="incomeList"></div>
+</div>
+
+<div class="section">
+  <div class="sec-header">
+    <span class="sec-label">Ausgaben</span>
+    <button class="add-btn" onclick="openModal('expense')">＋ Hinzufügen</button>
+  </div>
+  <div class="entries" id="expenseList"></div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="overlay" id="addOverlay" onclick="handleOverlay(event,'addOverlay')">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <div class="sheet-title" id="sheetTitle">Eintrag hinzufügen</div>
+
+    <div class="type-sw">
+      <button id="btnInc" onclick="setType('income')">💰 Einnahme</button>
+      <button id="btnExp" onclick="setType('expense')">🧾 Ausgabe</button>
+    </div>
+
+    <input type="file" accept="image/*" capture="environment" id="fileCam" style="display:none" onchange="handlePhoto(event)">
+    <input type="file" accept="image/*" id="fileGal" style="display:none" onchange="handlePhoto(event)">
+
+    <div class="photo-row">
+      <div class="photo-tile" onclick="document.getElementById('fileCam').click()">
+        <div class="ico">📷</div>
+        <div class="lbl">Kamera</div>
+      </div>
+      <div class="photo-tile" onclick="document.getElementById('fileGal').click()">
+        <div class="ico">🖼️</div>
+        <div class="lbl">Galerie</div>
+      </div>
+    </div>
+
+    <img class="prev-img" id="prevImg" src="" alt="">
+    <div class="ai-box" id="aiBox"></div>
+
+    <div class="field">
+      <label>Beschreibung</label>
+      <input type="text" id="fDesc" placeholder="z.B. Claude Pro Abo Mai">
+    </div>
+    <div class="field">
+      <label>Betrag (€)</label>
+      <input type="number" id="fAmt" placeholder="0,00" step="0.01" min="0" oninput="updateAbzug()">
+    </div>
+    <div class="field">
+      <label>Datum</label>
+      <input type="date" id="fDate">
+    </div>
+    <div class="field">
+      <label>Kategorie</label>
+      <select id="fCat"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="field">
+        <label>Belegnummer</label>
+        <input type="text" id="fBelegnr" placeholder="z.B. 2025-001">
+      </div>
+      <div class="field">
+        <label>Zahlungsart</label>
+        <select id="fZahlung">
+          <option value="Bankkarte">💳 Bankkarte</option>
+          <option value="Überweisung">🏦 Überweisung</option>
+          <option value="PayPal">🅿️ PayPal</option>
+          <option value="Bar">💵 Bar</option>
+          <option value="TikTok">🛍️ TikTok</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" id="nutzungField">
+      <label>Betriebliche Nutzung: <span id="nutzungVal">100</span>%</label>
+      <input type="range" id="fNutzung" min="10" max="100" step="10" value="100"
+        oninput="document.getElementById('nutzungVal').textContent=this.value;updateAbzug()"
+        style="width:100%;accent-color:var(--g);margin-top:4px;cursor:pointer;">
+      <div style="font-size:11px;color:var(--sub);margin-top:4px;">
+        Abzugsfähig: <strong id="abzugAmt">—</strong>
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="saveEntry()">Speichern</button>
+    <button class="cancel-btn" onclick="closeModal()">Abbrechen</button>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settingsOverlay" onclick="handleOverlay(event,'settingsOverlay')">
+  <div class="sheet">
+    <div class="drag-bar"></div>
+    <div class="sheet-title">Einstellungen</div>
+
+    <div class="field">
+      <label>Anthropic API Key</label>
+      <div class="key-wrap">
+        <input type="password" id="apiInput" placeholder="sk-ant-...">
+        <button class="eye" onclick="toggleEye()">👁️</button>
+      </div>
+    </div>
+
+    <div class="settings-note">
+      Schlüssel wird nur lokal auf deinem Gerät gespeichert — niemals übertragen.<br>
+      API Key holen: <span>console.anthropic.com → API Keys</span>
+    </div>
+
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <button class="bar-btn" onclick="exportJSON()" style="border-radius:12px;padding:12px;font-size:13px;">💾 Backup JSON</button>
+      <button class="bar-btn" onclick="document.getElementById('importFile').click()" style="border-radius:12px;padding:12px;font-size:13px;">📂 Wiederherstellen</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <div style="font-size:11px;color:var(--sub);margin-bottom:16px;text-align:center;">Backup vor dem Export empfohlen</div>
+    <button class="save-btn" onclick="saveSettings()">Speichern</button>
+    <button class="cancel-btn" onclick="closeSettings()">Schließen</button>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div class="bottom-bar">
+  <button class="bar-btn" onclick="exportExcel()">📊 Excel EÜR</button>
+  <button class="bar-btn primary" onclick="exportAll()">📋 Jahresexport</button>
+</div>
+
+<script>
+const MONTHS = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const MONTHS_FULL = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+
+const CATS_EXP = ['Software/Abos','Hardware','Bürobedarf','Internet/Telefon','Werbung','Versand/Porto','Fahrtkosten','Miete/Arbeitszimmer','Produkte zum Testen','Bankgebühren','Steuerberater','Sonstiges'];
+const CATS_INC = ['TikTok Shop','Sonstiges'];
+
+const ICONS = {
+  'Software/Abos':'💻','Hardware':'🖥️','Bürobedarf':'📦','Internet/Telefon':'📱',
+  'Werbung':'📣','Versand/Porto':'📬','Fahrtkosten':'🚗','Miete/Arbeitszimmer':'🏠',
+  'Produkte zum Testen':'🧪','Bankgebühren':'🏦','Steuerberater':'📋',
+  'TikTok Shop':'🛍️','Sonstiges':'🔧'
+};
+
+let entries = JSON.parse(localStorage.getItem('sd_entries') || '[]');
+let curMonth = new Date().getMonth();
+let curYear = new Date().getFullYear();
+let curType = 'expense';
+let photoB64 = null;
+let editId = null;
+
+function persist() { localStorage.setItem('sd_entries', JSON.stringify(entries)); }
+
+/* ── MONTH BAR ── */
+function buildMonths() {
+  const el = document.getElementById('monthStrip');
+  el.innerHTML = MONTHS.map((m, i) =>
+    `<button class="m-btn${i===curMonth?' active':''}" onclick="selectMonth(${i})">${m}</button>`
+  ).join('');
+}
+function selectMonth(i) {
+  curMonth = i;
+  // If selected month is in the future relative to current month, go to previous year
+  const now = new Date();
+  if (i > now.getMonth() && curYear === now.getFullYear()) {
+    curYear = now.getFullYear() - 1;
+  } else if (i <= now.getMonth()) {
+    curYear = now.getFullYear();
+  }
+  buildMonths();
+  render();
+}
+
+
+let curFilter = 'Alle';
+
+function buildFilter() {
+  const used = [...new Set(entries.filter(e => {
+    const d = new Date(e.date);
+    return d.getMonth()===curMonth && d.getFullYear()===curYear;
+  }).map(e=>e.cat))];
+  const cats = ['Alle', ...used];
+  document.getElementById('filterBar').innerHTML = cats.map(c =>
+    `<button class="f-btn${c===curFilter?' active':''}" onclick="setFilter('${c}')">${c==='Alle'?'🗂 Alle':(ICONS[c]||'')+'\xa0'+c}</button>`
+  ).join('');
+}
+function setFilter(c) { curFilter = c; buildFilter(); render(); }
+
+/* ── RENDER ── */
+function fmt(n) { return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+
+function render() {
+  const me = entries.filter(e => { const d=new Date(e.date); return d.getMonth()===curMonth && d.getFullYear()===curYear; });
+  const inc = me.filter(e=>e.type==='income');
+  const exp = me.filter(e=>e.type==='expense');
+  const tInc = inc.reduce((s,e)=>s+e.amount,0);
+  const tExp = exp.reduce((s,e)=>s+e.amount,0);
+  const profit = tInc - tExp;
+
+  const tExpAbzug = exp.reduce((s,e)=>s+(e.abzug||e.amount),0);
+  const profitReal = tInc - tExpAbzug;
+  document.getElementById('heroInc').textContent = fmt(tInc);
+  document.getElementById('heroExp').textContent = fmt(tExpAbzug);
+  const hp = document.getElementById('heroProfit');
+  hp.textContent = (profitReal>=0?'+':'')+fmt(Math.abs(profitReal));
+  hp.className = 'hero-amount ' + (profitReal>=0?'positive':'negative');
+
+  const filtered = curFilter==='Alle' ? me : me.filter(e=>e.cat===curFilter);
+  renderList('incomeList', filtered.filter(e=>e.type==='income'), 'income');
+  renderList('expenseList', filtered.filter(e=>e.type==='expense'), 'expense');
+  buildFilter();
+}
+
+function renderList(id, items, type) {
+  const el = document.getElementById(id);
+  if (!items.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">${type==='income'?'💰':'🧾'}</div><div class="empty-txt">Noch keine Einträge</div></div>`;
+    return;
+  }
+  el.innerHTML = items.map(e => `
+    <div class="entry ${type}">
+      <div class="entry-ico">${ICONS[e.cat]||'📄'}</div>
+      <div class="entry-body">
+        <div class="entry-title">${e.desc}</div>
+        <div class="entry-sub">
+          ${new Date(e.date).toLocaleDateString('de-DE')}
+          <span class="cat-pill">${e.cat}</span>
+          ${e.belegnr ? '<span class="cat-pill">🔖 '+e.belegnr+'</span>' : ''}
+          ${e.nutzung && e.nutzung < 100 ? '<span class="cat-pill" style="color:var(--amber)">'+e.nutzung+'%</span>' : ''}
+        </div>
+      </div>
+      <div class="entry-right">
+        <div class="entry-amt">${type==='income'?'+':'-'}${fmt(e.amount)}</div>
+      </div>
+      <button class="edit-btn" onclick="openEdit('${e.id}')">✏️</button>
+      <button class="del-btn" onclick="del('${e.id}')">×</button>
+    </div>`).join('');
+}
+
+function del(id) { entries = entries.filter(e=>e.id!==id); persist(); render(); }
+
+/* ── MODAL ── */
+function openModal(type) {
+  editId = null;
+  curType = type; photoB64 = null;
+  document.getElementById('sheetTitle').textContent = type==='income' ? 'Einnahme hinzufügen' : 'Ausgabe hinzufügen';
+  document.getElementById('prevImg').classList.remove('show');
+  document.getElementById('aiBox').classList.remove('show');
+  document.getElementById('aiBox').innerHTML = '';
+  document.getElementById('fDesc').value = '';
+  document.getElementById('fAmt').value = '';
+  document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fileCam').value = '';
+  document.getElementById('fileGal').value = '';
+  document.getElementById('fBelegnr').value = '';
+  document.getElementById('fZahlung').value = 'Bankkarte';
+  document.getElementById('fNutzung').value = 100;
+  document.getElementById('nutzungVal').textContent = '100';
+  document.getElementById('abzugAmt').textContent = '—';
+  // Auto-increment Belegnummer
+  const nums = entries.map(e=>e.belegnr).filter(Boolean).map(n=>parseInt(n.split('-').pop())||0);
+  const next = (nums.length ? Math.max(...nums) : 0) + 1;
+  document.getElementById('fBelegnr').value = curYear + '-' + String(next).padStart(3,'0');
+  setType(type);
+  document.getElementById('addOverlay').classList.add('open');
+}
+
+function openEdit(id) {
+  const e = entries.find(x=>x.id===id);
+  if (!e) return;
+  editId = id;
+  photoB64 = null;
+  document.getElementById('sheetTitle').textContent = 'Eintrag bearbeiten';
+  document.getElementById('prevImg').classList.remove('show');
+  document.getElementById('aiBox').classList.remove('show');
+  document.getElementById('aiBox').innerHTML = '';
+  document.getElementById('fileCam').value = '';
+  document.getElementById('fileGal').value = '';
+  setType(e.type);
+  document.getElementById('fDesc').value = e.desc;
+  document.getElementById('fAmt').value = e.amount;
+  document.getElementById('fDate').value = e.date;
+  // set category after setType builds the options
+  setTimeout(() => {
+    const sel = document.getElementById('fCat');
+    const opt = [...sel.options].find(o=>o.value===e.cat);
+    if (opt) sel.value = e.cat;
+  }, 0);
+  document.getElementById('fBelegnr').value = e.belegnr || '';
+  document.getElementById('fZahlung').value = e.zahlung || 'Bankkarte';
+  const nutz = e.nutzung || 100;
+  document.getElementById('fNutzung').value = nutz;
+  document.getElementById('nutzungVal').textContent = nutz;
+  document.getElementById('addOverlay').classList.add('open');
+  setTimeout(updateAbzug, 0);
+}
+
+function closeModal() { document.getElementById('addOverlay').classList.remove('open'); editId = null; }
+
+function handleOverlay(e, id) { if (e.target.id===id) document.getElementById(id).classList.remove('open'); }
+
+function updateAbzug() {
+  const amt = parseFloat(document.getElementById('fAmt').value) || 0;
+  const pct = parseInt(document.getElementById('fNutzung').value) || 100;
+  const abz = (amt * pct / 100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('abzugAmt').textContent = pct < 100 ? abz + ' €' : '—';
+}
+
+function setType(t) {
+  curType = t;
+  document.getElementById('btnInc').className = t==='income'?'on-inc':'';
+  document.getElementById('btnExp').className = t==='expense'?'on-exp':'';
+  const cats = t==='income' ? CATS_INC : CATS_EXP;
+  document.getElementById('fCat').innerHTML = cats.map(c=>`<option value="${c}">${ICONS[c]||'📄'} ${c}</option>`).join('');
+}
+
+/* ── PHOTO / AI ── */
+async function handlePhoto(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    photoB64 = e.target.result.split(',')[1];
+    const prev = document.getElementById('prevImg');
+    prev.src = e.target.result; prev.classList.add('show');
+
+    const box = document.getElementById('aiBox');
+    box.innerHTML = '<div class="dots"><span></span><span></span><span></span></div> KI analysiert Beleg...';
+    box.classList.add('show');
+
+    const key = localStorage.getItem('sd_api_key') || '';
+    if (!key) { box.innerHTML = '⚠️ Kein API Key — bitte in ⚙️ Einstellungen eintragen.'; return; }
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 400,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: file.type||'image/jpeg', data: photoB64 } },
+              { type: 'text', text: `Du bist ein deutscher Steuerberater-Assistent für einen Kleinunternehmer (TikTok Shop / Content Creator).
+
+Analysiere diesen Beleg und extrahiere:
+1. Betrag (nur Zahl, Euro)
+2. Datum (YYYY-MM-DD)
+3. Kurze Beschreibung (max 5 Wörter, Deutsch)
+4. Passende Kategorie aus dieser Liste:
+   - "Software/Abos" → ChatGPT, Claude, Adobe, Apps, Streaming, SaaS
+   - "Hardware" → Laptop, Monitor, Kamera, Mikrofon, Elektronik, Kabel
+   - "Bürobedarf" → Papier, Drucker, Schreibwaren, Ständer, Manekein, Möbel
+   - "Internet/Telefon" → Telekom, Vodafone, O2, DSL, Mobilfunk
+   - "Werbung" → TikTok Ads, Meta, Google Ads
+   - "Versand/Porto" → DHL, Hermes, DPD, UPS, Porto
+   - "Fahrtkosten" → Tankstelle, Benzin, Bahn, ÖPNV, Taxi
+   - "Miete/Arbeitszimmer" → Miete, Strom, Nebenkosten
+   - "Produkte zum Testen" → Waren, Produkte, Artikel
+   - "Bankgebühren" → Kontoführung, PayPal-Gebühr, Bankkosten
+   - "Steuerberater" → Buchhaltung, DATEV, Steuersoftware
+   - "TikTok Shop" → TikTok Auszahlung, Affiliate, Provision
+   - "Sonstiges" → alles andere
+5. type: "income" nur bei TikTok-Auszahlungen, sonst "expense"
+
+Antworte AUSSCHLIESSLICH als JSON ohne Markdown:
+{"amount":12.99,"date":"2025-05-14","desc":"Claude Pro Abo","category":"Software/Abos","type":"expense"}` }
+            ]
+          }]
+        })
+      });
+      const data = await res.json();
+      const raw = data.content?.[0]?.text || '';
+      let p;
+      try { p = JSON.parse(raw.replace(/```json|```/g,'').trim()); } catch { box.innerHTML = '⚠️ Konnte Beleg nicht lesen. Bitte manuell ausfüllen.'; return; }
+
+      if (p.amount) document.getElementById('fAmt').value = p.amount;
+      if (p.date) document.getElementById('fDate').value = p.date;
+      if (p.desc) document.getElementById('fDesc').value = p.desc;
+      if (p.type && p.type !== curType) setType(p.type);
+      if (p.category) {
+        const sel = document.getElementById('fCat');
+        const opt = [...sel.options].find(o=>o.value===p.category);
+        if (opt) sel.value = p.category;
+      }
+      box.innerHTML = `✅ <strong>${p.desc}</strong> · <strong>${p.amount} €</strong> · ${ICONS[p.category]||''} ${p.category||''}`;
+    } catch { box.innerHTML = '⚠️ KI-Fehler. Bitte manuell eingeben.'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── SAVE ENTRY ── */
+function saveEntry() {
+  const desc = document.getElementById('fDesc').value.trim();
+  const amount = parseFloat(document.getElementById('fAmt').value);
+  const date = document.getElementById('fDate').value;
+  const cat = document.getElementById('fCat').value;
+  const belegnr = document.getElementById('fBelegnr').value.trim();
+  const zahlung = document.getElementById('fZahlung').value;
+  const nutzung = parseInt(document.getElementById('fNutzung').value) || 100;
+  const abzug = parseFloat((amount * nutzung / 100).toFixed(2));
+  if (!desc || !amount || !date) { toast('⚠️ Bitte alle Felder ausfüllen'); return; }
+  if (editId) {
+    const idx = entries.findIndex(e=>e.id===editId);
+    if (idx !== -1) entries[idx] = { ...entries[idx], type: curType, desc, amount, abzug, nutzung, date, cat, belegnr, zahlung };
+    toast('✅ Aktualisiert');
+  } else {
+    entries.push({ id: Date.now().toString(), type: curType, desc, amount, abzug, nutzung, date, cat, belegnr, zahlung });
+    toast('✅ Gespeichert');
+  }
+  persist(); closeModal(); render();
+}
+
+
+/* ── BACKUP ── */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify({version:1, entries}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `spardirekt_backup_${curYear}.json`;
+  a.click();
+  toast('💾 Backup gespeichert');
+}
+
+function importJSON(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const imported = data.entries || data;
+      if (!Array.isArray(imported)) throw new Error();
+      const existing = new Set(entries.map(x=>x.id));
+      const newOnes = imported.filter(x=>!existing.has(x.id));
+      entries = [...entries, ...newOnes];
+      persist(); render();
+      toast(`✅ ${newOnes.length} Einträge importiert`);
+    } catch { toast('⚠️ Ungültige Backup-Datei'); }
+  };
+  r.readAsText(file);
+  ev.target.value = '';
+}
+
+/* ── EXPORT ── */
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+
+  // ── Monatsblätter ──
+  for (let m = 0; m < 12; m++) {
+    const me = entries.filter(e => { const d=new Date(e.date); return d.getMonth()===m && d.getFullYear()===curYear; });
+    if (!me.length) continue;
+
+    const inc = me.filter(e=>e.type==='income');
+    const exp = me.filter(e=>e.type==='expense');
+    const tInc = inc.reduce((s,e)=>s+e.amount,0);
+    const tExp = exp.reduce((s,e)=>s+(e.abzug||e.amount),0);
+    const tExpBrutto = exp.reduce((s,e)=>s+e.amount,0);
+    const gewinn = tInc - tExp;
+
+    const rows = [
+      // Kopfzeile
+      [`EÜR – ${MONTHS_FULL[m]} ${curYear}`, '', '', '', '', '', '', ''],
+      ['Steuerpflichtiger: Robert Lind', '', '', '', '', '', '', ''],
+      ['Gewerbebetrieb: spardirekt.de', '', '', '', '', '', '', ''],
+      ['Kleinunternehmer gemäß §19 UStG – keine Umsatzsteuer', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+      // Einnahmen
+      ['EINNAHMEN', '', '', '', '', '', '', ''],
+      ['Beleg-Nr.', 'Datum', 'Beschreibung', 'Kategorie', 'Zahlungsart', 'Betrag (€)', '', ''],
+      ...inc.map(e=>[
+        e.belegnr||'–',
+        new Date(e.date).toLocaleDateString('de-DE'),
+        e.desc,
+        e.cat,
+        e.zahlung||'',
+        e.amount,
+        '', ''
+      ]),
+      ['', '', '', '', 'Summe Einnahmen', tInc, '', ''],
+      ['', '', '', '', '', '', '', ''],
+      // Ausgaben
+      ['AUSGABEN', '', '', '', '', '', '', ''],
+      ['Beleg-Nr.', 'Datum', 'Beschreibung', 'Kategorie', 'Zahlungsart', 'Brutto (€)', 'Nutzung %', 'Abzugsfähig (€)'],
+      ...exp.map(e=>[
+        e.belegnr||'–',
+        new Date(e.date).toLocaleDateString('de-DE'),
+        e.desc,
+        e.cat,
+        e.zahlung||'',
+        e.amount,
+        (e.nutzung||100)+'%',
+        e.abzug||e.amount
+      ]),
+      ['', '', '', '', 'Summe Ausgaben (brutto)', tExpBrutto, '', ''],
+      ['', '', '', '', 'Summe Ausgaben (abzugsfähig)', '', '', tExp],
+      ['', '', '', '', '', '', '', ''],
+      // Ergebnis
+      ['ERGEBNIS', '', '', '', '', '', '', ''],
+      ['', '', '', '', 'Betriebseinnahmen', tInc, '', ''],
+      ['', '', '', '', 'Betriebsausgaben (abzugsfähig)', '', '', tExp],
+      ['', '', '', '', 'Gewinn / Verlust', '', '', gewinn],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:12},{wch:12},{wch:32},{wch:22},{wch:20},{wch:14},{wch:10},{wch:16}];
+
+    // Bold header rows (row 0, 5, 11, 17)
+    XLSX.utils.book_append_sheet(wb, ws, MONTHS_FULL[m].substring(0,3));
+  }
+
+  // ── Jahresübersicht ──
+  let tI=0, tE=0, tEB=0;
+  const srows = [
+    [`EÜR Jahresübersicht ${curYear}`, '', '', '', ''],
+    ['Steuerpflichtiger: Robert Lind / spardirekt.de', '', '', '', ''],
+    ['Kleinunternehmer gemäß §19 UStG', '', '', '', ''],
+    [`Gewerbeanmeldung: 01.05.2025`, '', '', '', ''],
+    ['', '', '', '', ''],
+    ['Monat', 'Einnahmen (€)', 'Ausgaben brutto (€)', 'Ausgaben abzugsfähig (€)', 'Gewinn/Verlust (€)'],
+  ];
+  for (let m=0;m<12;m++) {
+    const me=entries.filter(e=>{const d=new Date(e.date);return d.getMonth()===m&&d.getFullYear()===curYear;});
+    const i=me.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+    const xb=me.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
+    const xa=me.filter(e=>e.type==='expense').reduce((s,e)=>s+(e.abzug||e.amount),0);
+    tI+=i; tEB+=xb; tE+=xa;
+    if (i||xb) srows.push([MONTHS_FULL[m], i, xb, xa, i-xa]);
+  }
+  srows.push(
+    ['', '', '', '', ''],
+    ['GESAMT', tI, tEB, tE, tI-tE],
+    ['', '', '', '', ''],
+    ['Hinweis: Dokument maschinell erstellt mit SpardirektSteuer', '', '', '', ''],
+    [`Erstellt am: ${new Date().toLocaleDateString('de-DE')}`, '', '', '', ''],
+  );
+  const ws2 = XLSX.utils.aoa_to_sheet(srows);
+  ws2['!cols'] = [{wch:16},{wch:16},{wch:20},{wch:22},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Jahresübersicht');
+
+  XLSX.writeFile(wb, `EÜR_${curYear}_Robert_Lind.xlsx`);
+  toast('📊 EÜR exportiert');
+}
+
+function exportAll() { exportExcel(); }
+
+/* ── SETTINGS ── */
+function openSettings() {
+  document.getElementById('apiInput').value = localStorage.getItem('sd_api_key') || '';
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettings() { document.getElementById('settingsOverlay').classList.remove('open'); }
+function saveSettings() {
+  const k = document.getElementById('apiInput').value.trim();
+  if (!k) { toast('⚠️ Bitte Key eingeben'); return; }
+  localStorage.setItem('sd_api_key', k);
+  closeSettings();
+  toast('✅ API Key gespeichert');
+}
+function toggleEye() {
+  const i = document.getElementById('apiInput');
+  i.type = i.type==='password'?'text':'password';
+}
+
+/* ── TOAST ── */
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2500);
+}
+
+/* ── INIT ── */
+buildMonths();
+render();
+if (!localStorage.getItem('sd_api_key')) setTimeout(openSettings, 600);
+</script>
+</body>
+</html>
