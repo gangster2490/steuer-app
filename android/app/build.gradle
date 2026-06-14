@@ -1,0 +1,17 @@
+apply plugin: 'com.android.application'
+android {
+    compileSdkVersion 33
+    defaultConfig {
+        applicationId "de.spardirekt.steuer"
+        minSdkVersion 21
+        targetSdkVersion 33
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release { minifyEnabled false }
+    }
+}
+dependencies {
+    implementation 'androidx.core:core:1.9.0'
+}
